@@ -35,15 +35,61 @@ static void STATE_CONTROLPOWER_enter(PowerControl_SM* sm);
 
 static void STATE_CONTROLPOWER_exit(PowerControl_SM* sm);
 
+static void STATE_CONTROLPOWER_short_press(PowerControl_SM* sm);
+
+static void PWR_OFF_enter(PowerControl_SM* sm);
+
+static void PWR_OFF_exit(PowerControl_SM* sm);
+
+static void PWR_OFF_do(PowerControl_SM* sm);
+
+static void PWR_ON_enter(PowerControl_SM* sm);
+
+static void PWR_ON_exit(PowerControl_SM* sm);
+
+static void PWR_ON_do(PowerControl_SM* sm);
+
 static void STATE_FULLPOWER_enter(PowerControl_SM* sm);
 
 static void STATE_FULLPOWER_exit(PowerControl_SM* sm);
+
+static void STATE_FULLPOWER_short_press(PowerControl_SM* sm);
 
 static void STATE_OFF_enter(PowerControl_SM* sm);
 
 static void STATE_OFF_exit(PowerControl_SM* sm);
 
-static void STATE_OFF_do(PowerControl_SM* sm);
+static void STATE_OFF_long_press(PowerControl_SM* sm);
+
+static void STATE_OFF_short_press(PowerControl_SM* sm);
+
+static void STATE_Off_InitialState_transition(PowerControl_SM* sm);
+
+static void PWR_LED_OFF_enter(PowerControl_SM* sm);
+
+static void PWR_LED_OFF_exit(PowerControl_SM* sm);
+
+static void PWR_LED_OFF_do(PowerControl_SM* sm);
+
+static void PWR_LED_ON_enter(PowerControl_SM* sm);
+
+static void PWR_LED_ON_exit(PowerControl_SM* sm);
+
+static void PWR_LED_ON_do(PowerControl_SM* sm);
+
+static void STATE_SETINC_enter(PowerControl_SM* sm);
+
+static void STATE_SETINC_exit(PowerControl_SM* sm);
+
+static void STATE_SETINC_do(PowerControl_SM* sm);
+
+static void STATE_SETPOWER_enter(PowerControl_SM* sm);
+
+static void STATE_SETPOWER_exit(PowerControl_SM* sm);
+
+static void STATE_SETPOWER_long_press(PowerControl_SM* sm);
+
+static void STATE_SETPOWER_short_press(PowerControl_SM* sm);
 
 
 // State machine constructor. Must be called before start or dispatch event functions. Not thread safe.
@@ -135,9 +181,10 @@ static void STATE_ERROR_enter(PowerControl_SM* sm)
     sm->current_state_exit_handler = STATE_ERROR_exit;
     
     // STATE_Error behavior
-    // uml: enter
+    // uml: enter / { showErrorScreen(); }
     {
-        // Step 1: execute action ``
+        // Step 1: execute action `showErrorScreen();`
+        sm->vars.parent->showErrorScreen();
     } // end of behavior for STATE_Error
 }
 
@@ -159,9 +206,10 @@ static void STATE_INIT_enter(PowerControl_SM* sm)
     sm->current_event_handlers[PowerControl_SM_EventId_DO] = STATE_INIT_do;
     
     // STATE_Init behavior
-    // uml: enter
+    // uml: enter / { init_success = getInitState(); }
     {
-        // Step 1: execute action ``
+        // Step 1: execute action `init_success = getInitState();`
+        sm->vars.initSuccess = sm->vars.parent->getInitState();
     } // end of behavior for STATE_Init
 }
 
@@ -177,8 +225,8 @@ static void STATE_INIT_do(PowerControl_SM* sm)
     // No ancestor state handles `do` event.
     
     // STATE_Init behavior
-    // uml: do [InitSuccess = 0] TransitionTo(STATE_Error)
-    if (InitSuccess = 0)
+    // uml: do [init_success = 0] TransitionTo(STATE_Error)
+    if (sm->vars.initSuccess = 0)
     {
         // Step 1: Exit states until we reach `ROOT` state (Least Common Ancestor for transition).
         STATE_INIT_exit(sm);
@@ -195,8 +243,8 @@ static void STATE_INIT_do(PowerControl_SM* sm)
     } // end of behavior for STATE_Init
     
     // STATE_Init behavior
-    // uml: do [InitSuccess = 1] TransitionTo(STATE_NormalOperation)
-    if (InitSuccess = 1)
+    // uml: do [init_success = 1] TransitionTo(STATE_NormalOperation)
+    if (sm->vars.initSuccess = 1)
     {
         // Step 1: Exit states until we reach `ROOT` state (Least Common Ancestor for transition).
         STATE_INIT_exit(sm);
@@ -216,10 +264,9 @@ static void STATE_INIT_do(PowerControl_SM* sm)
             // Step 3: Enter/move towards transition target `STATE_Off`.
             STATE_OFF_enter(sm);
             
-            // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
-            sm->state_id = PowerControl_SM_StateId_STATE_OFF;
-            // No ancestor handles event. Can skip nulling `ancestor_event_handler`.
-            return;
+            // Finish transition by calling pseudo state transition function.
+            STATE_Off_InitialState_transition(sm);
+            return; // event processing immediately stops when a transition finishes. No other behaviors for this state are checked.
         } // end of behavior for STATE_NormalOperation.<InitialState>
     } // end of behavior for STATE_Init
 }
@@ -250,24 +297,168 @@ static void STATE_CONTROLPOWER_enter(PowerControl_SM* sm)
 {
     // setup trigger/event handlers
     sm->current_state_exit_handler = STATE_CONTROLPOWER_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_SHORT_PRESS] = STATE_CONTROLPOWER_short_press;
     
     // STATE_ControlPower behavior
-    // uml: enter
+    // uml: enter / { showPwrCtrlScreen();\npwr = getPwrSetting();\nshowPwrStatus();\nshowNextOff();\ncalcWaitTimes(); }
     {
-        // Step 1: execute action ``
+        // Step 1: execute action `showPwrCtrlScreen();\npwr = getPwrSetting();\nshowPwrStatus();\nshowNextOff();\ncalcWaitTimes();`
+        sm->vars.parent->showPwrCtrlScreen();
+        sm->vars.parent->pwr = sm->vars.parent->getPwrSetting();
+        sm->vars.parent->showPwrStatus();
+        sm->vars.parent->showNextOff();
+        sm->vars.parent->calcWaitTimes();
     } // end of behavior for STATE_ControlPower
 }
 
 static void STATE_CONTROLPOWER_exit(PowerControl_SM* sm)
 {
-    // STATE_ControlPower behavior
-    // uml: exit
-    {
-        // Step 1: execute action ``
-    } // end of behavior for STATE_ControlPower
-    
     // adjust function pointers for this state's exit
     sm->current_state_exit_handler = STATE_NORMALOPERATION_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_SHORT_PRESS] = NULL;  // no ancestor listens to this event
+}
+
+static void STATE_CONTROLPOWER_short_press(PowerControl_SM* sm)
+{
+    // No ancestor state handles `short_press` event.
+    
+    // STATE_ControlPower behavior
+    // uml: SHORT_PRESS TransitionTo(STATE_Off)
+    {
+        // Step 1: Exit states until we reach `STATE_NormalOperation` state (Least Common Ancestor for transition).
+        exit_up_to_state_handler(sm, STATE_NORMALOPERATION_exit);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `STATE_Off`.
+        STATE_OFF_enter(sm);
+        
+        // Finish transition by calling pseudo state transition function.
+        STATE_Off_InitialState_transition(sm);
+        return; // event processing immediately stops when a transition finishes. No other behaviors for this state are checked.
+    } // end of behavior for STATE_ControlPower
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// event handlers for state PWR_OFF
+////////////////////////////////////////////////////////////////////////////////
+
+static void PWR_OFF_enter(PowerControl_SM* sm)
+{
+    // setup trigger/event handlers
+    sm->current_state_exit_handler = PWR_OFF_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = PWR_OFF_do;
+    
+    // PWR_OFF behavior
+    // uml: enter / { pwrLEDoff();\npwrCounter=0;\npwrRelaisOff(); }
+    {
+        // Step 1: execute action `pwrLEDoff();\npwrCounter=0;\npwrRelaisOff();`
+        sm->vars.parent->pwrLEDoff();
+        sm->vars.parent->pwrCounter=0;
+        sm->vars.parent->pwrRelaisOff();
+    } // end of behavior for PWR_OFF
+}
+
+static void PWR_OFF_exit(PowerControl_SM* sm)
+{
+    // adjust function pointers for this state's exit
+    sm->current_state_exit_handler = STATE_CONTROLPOWER_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = NULL;  // no ancestor listens to this event
+}
+
+static void PWR_OFF_do(PowerControl_SM* sm)
+{
+    // No ancestor state handles `do` event.
+    
+    // PWR_OFF behavior
+    // uml: do / { pwrCounter++; }
+    {
+        // Step 1: execute action `pwrCounter++;`
+        sm->vars.parent->pwrCounter++;
+        
+        // Step 2: determine if ancestor gets to handle event next.
+        // Don't consume special `do` event.
+    } // end of behavior for PWR_OFF
+    
+    // PWR_OFF behavior
+    // uml: do [pwrCounter > pwrWaitOff] TransitionTo(PWR_ON)
+    if (sm->vars.parent->pwrCounter > sm->vars.parent->pwrWaitOff)
+    {
+        // Step 1: Exit states until we reach `STATE_ControlPower` state (Least Common Ancestor for transition).
+        PWR_OFF_exit(sm);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `PWR_ON`.
+        PWR_ON_enter(sm);
+        
+        // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
+        sm->state_id = PowerControl_SM_StateId_PWR_ON;
+        // No ancestor handles event. Can skip nulling `ancestor_event_handler`.
+        return;
+    } // end of behavior for PWR_OFF
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// event handlers for state PWR_ON
+////////////////////////////////////////////////////////////////////////////////
+
+static void PWR_ON_enter(PowerControl_SM* sm)
+{
+    // setup trigger/event handlers
+    sm->current_state_exit_handler = PWR_ON_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = PWR_ON_do;
+    
+    // PWR_ON behavior
+    // uml: enter / { pwrLEDon();\npwrCounter=0;\npwrRelaisOn(); }
+    {
+        // Step 1: execute action `pwrLEDon();\npwrCounter=0;\npwrRelaisOn();`
+        sm->vars.parent->pwrLEDon();
+        sm->vars.parent->pwrCounter=0;
+        sm->vars.parent->pwrRelaisOn();
+    } // end of behavior for PWR_ON
+}
+
+static void PWR_ON_exit(PowerControl_SM* sm)
+{
+    // adjust function pointers for this state's exit
+    sm->current_state_exit_handler = STATE_CONTROLPOWER_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = NULL;  // no ancestor listens to this event
+}
+
+static void PWR_ON_do(PowerControl_SM* sm)
+{
+    // No ancestor state handles `do` event.
+    
+    // PWR_ON behavior
+    // uml: do / { pwrCounter++; }
+    {
+        // Step 1: execute action `pwrCounter++;`
+        sm->vars.parent->pwrCounter++;
+        
+        // Step 2: determine if ancestor gets to handle event next.
+        // Don't consume special `do` event.
+    } // end of behavior for PWR_ON
+    
+    // PWR_ON behavior
+    // uml: do [pwrCounter > pwrWaitOn] TransitionTo(PWR_OFF)
+    if (sm->vars.parent->pwrCounter > sm->vars.parent->pwrWaitOn)
+    {
+        // Step 1: Exit states until we reach `STATE_ControlPower` state (Least Common Ancestor for transition).
+        PWR_ON_exit(sm);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `PWR_OFF`.
+        PWR_OFF_enter(sm);
+        
+        // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
+        sm->state_id = PowerControl_SM_StateId_PWR_OFF;
+        // No ancestor handles event. Can skip nulling `ancestor_event_handler`.
+        return;
+    } // end of behavior for PWR_ON
 }
 
 
@@ -279,11 +470,18 @@ static void STATE_FULLPOWER_enter(PowerControl_SM* sm)
 {
     // setup trigger/event handlers
     sm->current_state_exit_handler = STATE_FULLPOWER_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_SHORT_PRESS] = STATE_FULLPOWER_short_press;
     
     // STATE_FullPower behavior
-    // uml: enter
+    // uml: enter / { showFullScreen();\npwr = 100;\nshowPwrStatus();\nshowNextAtt();\npwrLEDon();\npwrRelaisOn(); }
     {
-        // Step 1: execute action ``
+        // Step 1: execute action `showFullScreen();\npwr = 100;\nshowPwrStatus();\nshowNextAtt();\npwrLEDon();\npwrRelaisOn();`
+        sm->vars.parent->showFullScreen();
+        sm->vars.parent->pwr = 100;
+        sm->vars.parent->showPwrStatus();
+        sm->vars.parent->showNextAtt();
+        sm->vars.parent->pwrLEDon();
+        sm->vars.parent->pwrRelaisOn();
     } // end of behavior for STATE_FullPower
 }
 
@@ -291,6 +489,40 @@ static void STATE_FULLPOWER_exit(PowerControl_SM* sm)
 {
     // adjust function pointers for this state's exit
     sm->current_state_exit_handler = STATE_NORMALOPERATION_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_SHORT_PRESS] = NULL;  // no ancestor listens to this event
+}
+
+static void STATE_FULLPOWER_short_press(PowerControl_SM* sm)
+{
+    // No ancestor state handles `short_press` event.
+    
+    // STATE_FullPower behavior
+    // uml: SHORT_PRESS TransitionTo(STATE_ControlPower)
+    {
+        // Step 1: Exit states until we reach `STATE_NormalOperation` state (Least Common Ancestor for transition).
+        STATE_FULLPOWER_exit(sm);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `STATE_ControlPower`.
+        STATE_CONTROLPOWER_enter(sm);
+        
+        // STATE_ControlPower.<InitialState> behavior
+        // uml: TransitionTo(PWR_ON)
+        {
+            // Step 1: Exit states until we reach `STATE_ControlPower` state (Least Common Ancestor for transition). Already at LCA, no exiting required.
+            
+            // Step 2: Transition action: ``.
+            
+            // Step 3: Enter/move towards transition target `PWR_ON`.
+            PWR_ON_enter(sm);
+            
+            // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
+            sm->state_id = PowerControl_SM_StateId_PWR_ON;
+            // No ancestor handles event. Can skip nulling `ancestor_event_handler`.
+            return;
+        } // end of behavior for STATE_ControlPower.<InitialState>
+    } // end of behavior for STATE_FullPower
 }
 
 
@@ -302,12 +534,18 @@ static void STATE_OFF_enter(PowerControl_SM* sm)
 {
     // setup trigger/event handlers
     sm->current_state_exit_handler = STATE_OFF_exit;
-    sm->current_event_handlers[PowerControl_SM_EventId_DO] = STATE_OFF_do;
+    sm->current_event_handlers[PowerControl_SM_EventId_LONG_PRESS] = STATE_OFF_long_press;
+    sm->current_event_handlers[PowerControl_SM_EventId_SHORT_PRESS] = STATE_OFF_short_press;
     
     // STATE_Off behavior
-    // uml: enter
+    // uml: enter / { showMainScreen();\npwr = 0;\nshowPwrStatus();\nshowNextFull();\npwrRelaisOff(); }
     {
-        // Step 1: execute action ``
+        // Step 1: execute action `showMainScreen();\npwr = 0;\nshowPwrStatus();\nshowNextFull();\npwrRelaisOff();`
+        sm->vars.parent->showMainScreen();
+        sm->vars.parent->pwr = 0;
+        sm->vars.parent->showPwrStatus();
+        sm->vars.parent->showNextFull();
+        sm->vars.parent->pwrRelaisOff();
     } // end of behavior for STATE_Off
 }
 
@@ -315,18 +553,41 @@ static void STATE_OFF_exit(PowerControl_SM* sm)
 {
     // adjust function pointers for this state's exit
     sm->current_state_exit_handler = STATE_NORMALOPERATION_exit;
-    sm->current_event_handlers[PowerControl_SM_EventId_DO] = NULL;  // no ancestor listens to this event
+    sm->current_event_handlers[PowerControl_SM_EventId_LONG_PRESS] = NULL;  // no ancestor listens to this event
+    sm->current_event_handlers[PowerControl_SM_EventId_SHORT_PRESS] = NULL;  // no ancestor listens to this event
 }
 
-static void STATE_OFF_do(PowerControl_SM* sm)
+static void STATE_OFF_long_press(PowerControl_SM* sm)
 {
-    // No ancestor state handles `do` event.
+    // No ancestor state handles `long_press` event.
     
     // STATE_Off behavior
-    // uml: do TransitionTo(STATE_FullPower)
+    // uml: LONG_PRESS TransitionTo(STATE_SetPower)
     {
         // Step 1: Exit states until we reach `STATE_NormalOperation` state (Least Common Ancestor for transition).
-        STATE_OFF_exit(sm);
+        exit_up_to_state_handler(sm, STATE_NORMALOPERATION_exit);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `STATE_SetPower`.
+        STATE_SETPOWER_enter(sm);
+        
+        // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
+        sm->state_id = PowerControl_SM_StateId_STATE_SETPOWER;
+        // No ancestor handles event. Can skip nulling `ancestor_event_handler`.
+        return;
+    } // end of behavior for STATE_Off
+}
+
+static void STATE_OFF_short_press(PowerControl_SM* sm)
+{
+    // No ancestor state handles `short_press` event.
+    
+    // STATE_Off behavior
+    // uml: SHORT_PRESS TransitionTo(STATE_FullPower)
+    {
+        // Step 1: Exit states until we reach `STATE_NormalOperation` state (Least Common Ancestor for transition).
+        exit_up_to_state_handler(sm, STATE_NORMALOPERATION_exit);
         
         // Step 2: Transition action: ``.
         
@@ -340,6 +601,268 @@ static void STATE_OFF_do(PowerControl_SM* sm)
     } // end of behavior for STATE_Off
 }
 
+static void STATE_Off_InitialState_transition(PowerControl_SM* sm)
+{
+    // STATE_Off.<InitialState> behavior
+    // uml: TransitionTo(PWR_LED_ON)
+    {
+        // Step 1: Exit states until we reach `STATE_Off` state (Least Common Ancestor for transition). Already at LCA, no exiting required.
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `PWR_LED_ON`.
+        PWR_LED_ON_enter(sm);
+        
+        // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
+        sm->state_id = PowerControl_SM_StateId_PWR_LED_ON;
+        sm->ancestor_event_handler = NULL;
+        return;
+    } // end of behavior for STATE_Off.<InitialState>
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// event handlers for state PWR_LED_OFF
+////////////////////////////////////////////////////////////////////////////////
+
+static void PWR_LED_OFF_enter(PowerControl_SM* sm)
+{
+    // setup trigger/event handlers
+    sm->current_state_exit_handler = PWR_LED_OFF_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = PWR_LED_OFF_do;
+    
+    // PWR_LED_OFF behavior
+    // uml: enter / { pwrLEDoff();\npwrCounter=0; }
+    {
+        // Step 1: execute action `pwrLEDoff();\npwrCounter=0;`
+        sm->vars.parent->pwrLEDoff();
+        sm->vars.parent->pwrCounter=0;
+    } // end of behavior for PWR_LED_OFF
+}
+
+static void PWR_LED_OFF_exit(PowerControl_SM* sm)
+{
+    // adjust function pointers for this state's exit
+    sm->current_state_exit_handler = STATE_OFF_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = NULL;  // no ancestor listens to this event
+}
+
+static void PWR_LED_OFF_do(PowerControl_SM* sm)
+{
+    // No ancestor state handles `do` event.
+    
+    // PWR_LED_OFF behavior
+    // uml: do / { pwrCounter++; }
+    {
+        // Step 1: execute action `pwrCounter++;`
+        sm->vars.parent->pwrCounter++;
+        
+        // Step 2: determine if ancestor gets to handle event next.
+        // Don't consume special `do` event.
+    } // end of behavior for PWR_LED_OFF
+    
+    // PWR_LED_OFF behavior
+    // uml: do [pwrCounter > 15] TransitionTo(PWR_LED_ON)
+    if (sm->vars.parent->pwrCounter > 15)
+    {
+        // Step 1: Exit states until we reach `STATE_Off` state (Least Common Ancestor for transition).
+        PWR_LED_OFF_exit(sm);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `PWR_LED_ON`.
+        PWR_LED_ON_enter(sm);
+        
+        // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
+        sm->state_id = PowerControl_SM_StateId_PWR_LED_ON;
+        // No ancestor handles event. Can skip nulling `ancestor_event_handler`.
+        return;
+    } // end of behavior for PWR_LED_OFF
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// event handlers for state PWR_LED_ON
+////////////////////////////////////////////////////////////////////////////////
+
+static void PWR_LED_ON_enter(PowerControl_SM* sm)
+{
+    // setup trigger/event handlers
+    sm->current_state_exit_handler = PWR_LED_ON_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = PWR_LED_ON_do;
+    
+    // PWR_LED_ON behavior
+    // uml: enter / { pwrLEDon();\npwrCounter=0; }
+    {
+        // Step 1: execute action `pwrLEDon();\npwrCounter=0;`
+        sm->vars.parent->pwrLEDon();
+        sm->vars.parent->pwrCounter=0;
+    } // end of behavior for PWR_LED_ON
+}
+
+static void PWR_LED_ON_exit(PowerControl_SM* sm)
+{
+    // adjust function pointers for this state's exit
+    sm->current_state_exit_handler = STATE_OFF_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = NULL;  // no ancestor listens to this event
+}
+
+static void PWR_LED_ON_do(PowerControl_SM* sm)
+{
+    // No ancestor state handles `do` event.
+    
+    // PWR_LED_ON behavior
+    // uml: do / { pwrCounter++; }
+    {
+        // Step 1: execute action `pwrCounter++;`
+        sm->vars.parent->pwrCounter++;
+        
+        // Step 2: determine if ancestor gets to handle event next.
+        // Don't consume special `do` event.
+    } // end of behavior for PWR_LED_ON
+    
+    // PWR_LED_ON behavior
+    // uml: do [pwrCounter > 2] TransitionTo(PWR_LED_OFF)
+    if (sm->vars.parent->pwrCounter > 2)
+    {
+        // Step 1: Exit states until we reach `STATE_Off` state (Least Common Ancestor for transition).
+        PWR_LED_ON_exit(sm);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `PWR_LED_OFF`.
+        PWR_LED_OFF_enter(sm);
+        
+        // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
+        sm->state_id = PowerControl_SM_StateId_PWR_LED_OFF;
+        // No ancestor handles event. Can skip nulling `ancestor_event_handler`.
+        return;
+    } // end of behavior for PWR_LED_ON
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// event handlers for state STATE_SETINC
+////////////////////////////////////////////////////////////////////////////////
+
+static void STATE_SETINC_enter(PowerControl_SM* sm)
+{
+    // setup trigger/event handlers
+    sm->current_state_exit_handler = STATE_SETINC_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = STATE_SETINC_do;
+    
+    // STATE_SetInc behavior
+    // uml: enter / { pwr = pwr + 10;\nsavePwrSetting(); }
+    {
+        // Step 1: execute action `pwr = pwr + 10;\nsavePwrSetting();`
+        sm->vars.parent->pwr = sm->vars.parent->pwr + 10;
+        sm->vars.parent->savePwrSetting();
+    } // end of behavior for STATE_SetInc
+}
+
+static void STATE_SETINC_exit(PowerControl_SM* sm)
+{
+    // adjust function pointers for this state's exit
+    sm->current_state_exit_handler = STATE_NORMALOPERATION_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_DO] = NULL;  // no ancestor listens to this event
+}
+
+static void STATE_SETINC_do(PowerControl_SM* sm)
+{
+    // No ancestor state handles `do` event.
+    
+    // STATE_SetInc behavior
+    // uml: do TransitionTo(STATE_SetPower)
+    {
+        // Step 1: Exit states until we reach `STATE_NormalOperation` state (Least Common Ancestor for transition).
+        STATE_SETINC_exit(sm);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `STATE_SetPower`.
+        STATE_SETPOWER_enter(sm);
+        
+        // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
+        sm->state_id = PowerControl_SM_StateId_STATE_SETPOWER;
+        // No ancestor handles event. Can skip nulling `ancestor_event_handler`.
+        return;
+    } // end of behavior for STATE_SetInc
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// event handlers for state STATE_SETPOWER
+////////////////////////////////////////////////////////////////////////////////
+
+static void STATE_SETPOWER_enter(PowerControl_SM* sm)
+{
+    // setup trigger/event handlers
+    sm->current_state_exit_handler = STATE_SETPOWER_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_LONG_PRESS] = STATE_SETPOWER_long_press;
+    sm->current_event_handlers[PowerControl_SM_EventId_SHORT_PRESS] = STATE_SETPOWER_short_press;
+    
+    // STATE_SetPower behavior
+    // uml: enter / { showSetupScreen();\npwr = getPwrSetting();\nshowPwrStatus();\nshowSetupMsg(); }
+    {
+        // Step 1: execute action `showSetupScreen();\npwr = getPwrSetting();\nshowPwrStatus();\nshowSetupMsg();`
+        sm->vars.parent->showSetupScreen();
+        sm->vars.parent->pwr = sm->vars.parent->getPwrSetting();
+        sm->vars.parent->showPwrStatus();
+        sm->vars.parent->showSetupMsg();
+    } // end of behavior for STATE_SetPower
+}
+
+static void STATE_SETPOWER_exit(PowerControl_SM* sm)
+{
+    // adjust function pointers for this state's exit
+    sm->current_state_exit_handler = STATE_NORMALOPERATION_exit;
+    sm->current_event_handlers[PowerControl_SM_EventId_LONG_PRESS] = NULL;  // no ancestor listens to this event
+    sm->current_event_handlers[PowerControl_SM_EventId_SHORT_PRESS] = NULL;  // no ancestor listens to this event
+}
+
+static void STATE_SETPOWER_long_press(PowerControl_SM* sm)
+{
+    // No ancestor state handles `long_press` event.
+    
+    // STATE_SetPower behavior
+    // uml: LONG_PRESS TransitionTo(STATE_Off)
+    {
+        // Step 1: Exit states until we reach `STATE_NormalOperation` state (Least Common Ancestor for transition).
+        STATE_SETPOWER_exit(sm);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `STATE_Off`.
+        STATE_OFF_enter(sm);
+        
+        // Finish transition by calling pseudo state transition function.
+        STATE_Off_InitialState_transition(sm);
+        return; // event processing immediately stops when a transition finishes. No other behaviors for this state are checked.
+    } // end of behavior for STATE_SetPower
+}
+
+static void STATE_SETPOWER_short_press(PowerControl_SM* sm)
+{
+    // No ancestor state handles `short_press` event.
+    
+    // STATE_SetPower behavior
+    // uml: SHORT_PRESS TransitionTo(STATE_SetInc)
+    {
+        // Step 1: Exit states until we reach `STATE_NormalOperation` state (Least Common Ancestor for transition).
+        STATE_SETPOWER_exit(sm);
+        
+        // Step 2: Transition action: ``.
+        
+        // Step 3: Enter/move towards transition target `STATE_SetInc`.
+        STATE_SETINC_enter(sm);
+        
+        // Step 4: complete transition. Ends event dispatch. No other behaviors are checked.
+        sm->state_id = PowerControl_SM_StateId_STATE_SETINC;
+        // No ancestor handles event. Can skip nulling `ancestor_event_handler`.
+        return;
+    } // end of behavior for STATE_SetPower
+}
+
 // Thread safe.
 char const * PowerControl_SM_state_id_to_string(PowerControl_SM_StateId id)
 {
@@ -350,8 +873,14 @@ char const * PowerControl_SM_state_id_to_string(PowerControl_SM_StateId id)
         case PowerControl_SM_StateId_STATE_INIT: return "STATE_INIT";
         case PowerControl_SM_StateId_STATE_NORMALOPERATION: return "STATE_NORMALOPERATION";
         case PowerControl_SM_StateId_STATE_CONTROLPOWER: return "STATE_CONTROLPOWER";
+        case PowerControl_SM_StateId_PWR_OFF: return "PWR_OFF";
+        case PowerControl_SM_StateId_PWR_ON: return "PWR_ON";
         case PowerControl_SM_StateId_STATE_FULLPOWER: return "STATE_FULLPOWER";
         case PowerControl_SM_StateId_STATE_OFF: return "STATE_OFF";
+        case PowerControl_SM_StateId_PWR_LED_OFF: return "PWR_LED_OFF";
+        case PowerControl_SM_StateId_PWR_LED_ON: return "PWR_LED_ON";
+        case PowerControl_SM_StateId_STATE_SETINC: return "STATE_SETINC";
+        case PowerControl_SM_StateId_STATE_SETPOWER: return "STATE_SETPOWER";
         default: return "?";
     }
 }
@@ -362,6 +891,8 @@ char const * PowerControl_SM_event_id_to_string(PowerControl_SM_EventId id)
     switch (id)
     {
         case PowerControl_SM_EventId_DO: return "DO";
+        case PowerControl_SM_EventId_LONG_PRESS: return "LONG_PRESS";
+        case PowerControl_SM_EventId_SHORT_PRESS: return "SHORT_PRESS";
         default: return "?";
     }
 }

@@ -29,7 +29,10 @@ public class MyRenderConfig : IRenderConfigC
         """;
 
     string IRenderConfig.VariableDeclarations => """
-        int non_expanded_user_example_var;
+        int initSuccess = 0;
+        int pwrWaitON = 0;
+        int pwrWaitOFF = 0;
+        AppController *parent;
         """;
 
     string IRenderConfigC.HFileTop => """
@@ -43,6 +46,7 @@ public class MyRenderConfig : IRenderConfigC
 
     string IRenderConfigC.HFileIncludes => """
         // user IRenderConfigC.HFileIncludes: whatever you want to put in here.
+        #include "AppController.h"
         """;
 
     string IRenderConfigC.CFileIncludes => """
@@ -55,6 +59,29 @@ public class MyRenderConfig : IRenderConfigC
     // See https://github.com/StateSmith/tutorial-2/tree/main/lesson-3
     public class MyExpansions : UserExpansionScriptBase
     {
+        public string init_success => VarsPath + "initSuccess";
+        public string showErrorScreen() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string showMainScreen() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string showPwrStatus() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string getInitState() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string pwr => $"sm->vars.parent->{AutoNameCopy()}";
+        public string pwrCounter => $"sm->vars.parent->{AutoNameCopy()}";
+        public string showNextFull() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string pwrLEDoff() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string pwrLEDon() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string pwrRelaisOn() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string pwrRelaisOff() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string getPwrSetting() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string calcWaitTimes() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string pwrWaitOff => $"sm->vars.parent->{AutoNameCopy()}";
+        public string pwrWaitOn => $"sm->vars.parent->{AutoNameCopy()}";
+        public string showSetupScreen() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string showSetupMsg() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string savePwrSetting() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string showNextOff() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string showNextAtt() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string showPwrCtrlScreen() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string showFullScreen() => $"sm->vars.parent->{AutoNameCopy()}()";
         // See https://github.com/StateSmith/tutorial-2/tree/main/lesson-4 for timing expansions
     }
 }

@@ -7,14 +7,17 @@
 #include <stdint.h>
 
 // user IRenderConfigC.HFileIncludes: whatever you want to put in here.
+#include "AppController.h"
 typedef enum PowerControl_SM_EventId
 {
     PowerControl_SM_EventId_DO = 0, // The `do` event is special. State event handlers do not consume this event (ancestors all get it too) unless a transition occurs.
+    PowerControl_SM_EventId_LONG_PRESS = 1,
+    PowerControl_SM_EventId_SHORT_PRESS = 2,
 } PowerControl_SM_EventId;
 
 enum
 {
-    PowerControl_SM_EventIdCount = 1
+    PowerControl_SM_EventIdCount = 3
 };
 
 typedef enum PowerControl_SM_StateId
@@ -24,13 +27,19 @@ typedef enum PowerControl_SM_StateId
     PowerControl_SM_StateId_STATE_INIT = 2,
     PowerControl_SM_StateId_STATE_NORMALOPERATION = 3,
     PowerControl_SM_StateId_STATE_CONTROLPOWER = 4,
-    PowerControl_SM_StateId_STATE_FULLPOWER = 5,
-    PowerControl_SM_StateId_STATE_OFF = 6,
+    PowerControl_SM_StateId_PWR_OFF = 5,
+    PowerControl_SM_StateId_PWR_ON = 6,
+    PowerControl_SM_StateId_STATE_FULLPOWER = 7,
+    PowerControl_SM_StateId_STATE_OFF = 8,
+    PowerControl_SM_StateId_PWR_LED_OFF = 9,
+    PowerControl_SM_StateId_PWR_LED_ON = 10,
+    PowerControl_SM_StateId_STATE_SETINC = 11,
+    PowerControl_SM_StateId_STATE_SETPOWER = 12,
 } PowerControl_SM_StateId;
 
 enum
 {
-    PowerControl_SM_StateIdCount = 7
+    PowerControl_SM_StateIdCount = 13
 };
 
 
@@ -41,7 +50,10 @@ typedef struct PowerControl_SM PowerControl_SM;
 // State machine variables. Can be used for inputs, outputs, user variables...
 typedef struct PowerControl_SM_Vars
 {
-    int non_expanded_user_example_var;
+    int initSuccess = 0;
+    int pwrWaitON = 0;
+    int pwrWaitOFF = 0;
+    AppController *parent;
     int auto_expanded_user_example_var;
 } PowerControl_SM_Vars;
 
