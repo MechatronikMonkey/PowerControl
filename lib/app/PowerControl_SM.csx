@@ -82,6 +82,7 @@ public class MyRenderConfig : IRenderConfigC
         public string showNextAtt() => $"sm->vars.parent->{AutoNameCopy()}()";
         public string showPwrCtrlScreen() => $"sm->vars.parent->{AutoNameCopy()}()";
         public string showFullScreen() => $"sm->vars.parent->{AutoNameCopy()}()";
+        public string savePowerToFlash() => $"sm->vars.parent->{AutoNameCopy()}()";
         // See https://github.com/StateSmith/tutorial-2/tree/main/lesson-4 for timing expansions
     }
 }

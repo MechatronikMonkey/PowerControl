@@ -814,6 +814,13 @@ static void STATE_SETPOWER_enter(PowerControl_SM* sm)
 
 static void STATE_SETPOWER_exit(PowerControl_SM* sm)
 {
+    // STATE_SetPower behavior
+    // uml: exit / { savePowerToFlash(); }
+    {
+        // Step 1: execute action `savePowerToFlash();`
+        sm->vars.parent->savePowerToFlash();
+    } // end of behavior for STATE_SetPower
+    
     // adjust function pointers for this state's exit
     sm->current_state_exit_handler = STATE_NORMALOPERATION_exit;
     sm->current_event_handlers[PowerControl_SM_EventId_LONG_PRESS] = NULL;  // no ancestor listens to this event

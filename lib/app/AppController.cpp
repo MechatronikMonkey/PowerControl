@@ -1,5 +1,6 @@
 #include "AppController.h"
 #include "mbed.h"
+#include "FlashIAP.h"
 #include "SSD1306.h"
 #include "PowerControl_SM.h"
 
@@ -16,7 +17,14 @@
 ///////////////////////////////////////////// LOCAL VARS /////////////////////////////////////////////
 
 static PowerControl_SM MyPwrCotrlSm;
-
+FlashIAP MyFlashHandle;
+uint32_t flash_start;
+uint32_t flash_size;
+uint32_t flash_end;
+uint32_t page_size;
+uint32_t address_to_write;
+uint32_t sector_size;
+uint32_t sector_start;
 
 ///////////////////////////////////////////// FUNCTIONS /////////////////////////////////////////////
 AppController::AppController()
@@ -38,6 +46,31 @@ AppController::AppController()
 }
 void AppController::Init()
 {
+    // Init flash
+    MyFlashHandle.init();
+
+    // Finde den Anfang und das Ende des Flash-Speichers
+    flash_start = MyFlashHandle.get_flash_start();
+    flash_size = MyFlashHandle.get_flash_size();
+    flash_end = flash_start + flash_size;
+    page_size = MyFlashHandle.get_page_size();
+    address_to_write = flash_end - page_size;
+    sector_size = MyFlashHandle.get_sector_size(address_to_write);
+    sector_start = address_to_write - (address_to_write % sector_size);
+
+    // Lese den Standardwert für Power aus dem Flash
+    memcpy(&pwrSetting, (const void*)address_to_write, sizeof(pwrSetting));
+
+    if (pwrSetting > 100)
+    {
+        pwrSetting = 100;
+    }
+
+    if (pwrSetting < 0)
+    {
+        pwrSetting = 0;
+    }
+    
     // Start I2C
     i2c_display->frequency(400000);
     i2c_display->start();
@@ -45,7 +78,7 @@ void AppController::Init()
     debouncecount = 0;
     pwr = 0;
     pwrCounter = 0;
-    pwrSetting = 30;
+
 
     // Start State machine
     PowerControl_SM_ctor(&MyPwrCotrlSm);
@@ -226,4 +259,26 @@ void AppController::savePwrSetting()
     }
 
     pwrSetting = pwr;
+}
+
+void AppController::savePowerToFlash()
+{
+    int result = 1;
+
+    // Löse zuerst den Sektor in den wir schreiben möchten
+    result = MyFlashHandle.erase(sector_start, sector_size);
+
+    if (result != 0) {
+        MyFlashHandle.deinit();
+        this->showErrorScreen();
+    }
+
+    // Schreibe nun den neuen Wert
+    result = MyFlashHandle.program(&pwrSetting, address_to_write, sizeof(pwrSetting));
+    if (result != 0) {
+        MyFlashHandle.deinit();
+        this->showErrorScreen();
+    }
+
+
 }

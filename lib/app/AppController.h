@@ -40,6 +40,7 @@ class AppController
         void showSetupScreen();
         void showSetupMsg();
         void savePwrSetting();
+        void savePowerToFlash();
 
     private:
         int debouncecount;

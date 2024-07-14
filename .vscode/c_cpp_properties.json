@@ -10,6 +10,7 @@
             "includePath": [
                 "C:/DOWNLOADS/PowerControl/include",
                 "C:/DOWNLOADS/PowerControl/src",
+                "C:/DOWNLOADS/PowerControl/lib/app",
                 "C:/DOWNLOADS/PowerControl/lib/SSD1306",
                 "C:/Users/muell/.platformio/packages/framework-mbed",
                 "C:/DOWNLOADS/PowerControl/.pio/build/nucleo_l432kc",
@@ -343,7 +344,6 @@
                 "C:/Users/muell/.platformio/packages/framework-mbed/targets/TARGET_STM/TARGET_STM32L4/STM32Cube_FW/STM32L4xx_HAL_Driver/Legacy",
                 "C:/Users/muell/.platformio/packages/framework-mbed/targets/TARGET_STM/TARGET_STM32L4/TARGET_STM32L432xC",
                 "C:/Users/muell/.platformio/packages/framework-mbed/targets/TARGET_STM/TARGET_STM32L4/TARGET_STM32L432xC/TARGET_NUCLEO_L432KC",
-                "C:/DOWNLOADS/PowerControl/lib/app",
                 ""
             ],
             "browse": {
@@ -351,6 +351,7 @@
                 "path": [
                     "C:/DOWNLOADS/PowerControl/include",
                     "C:/DOWNLOADS/PowerControl/src",
+                    "C:/DOWNLOADS/PowerControl/lib/app",
                     "C:/DOWNLOADS/PowerControl/lib/SSD1306",
                     "C:/Users/muell/.platformio/packages/framework-mbed",
                     "C:/DOWNLOADS/PowerControl/.pio/build/nucleo_l432kc",
@@ -684,7 +685,6 @@
                     "C:/Users/muell/.platformio/packages/framework-mbed/targets/TARGET_STM/TARGET_STM32L4/STM32Cube_FW/STM32L4xx_HAL_Driver/Legacy",
                     "C:/Users/muell/.platformio/packages/framework-mbed/targets/TARGET_STM/TARGET_STM32L4/TARGET_STM32L432xC",
                     "C:/Users/muell/.platformio/packages/framework-mbed/targets/TARGET_STM/TARGET_STM32L4/TARGET_STM32L432xC/TARGET_NUCLEO_L432KC",
-                    "C:/DOWNLOADS/PowerControl/lib/app",
                     ""
                 ]
             },
